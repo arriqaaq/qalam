@@ -51,6 +51,43 @@ func (q *Qalam) Likho(b []byte) (int, error) {
 	return q.Write(b)
 }
 
+func (q *Qalam) Writeln(b []byte) (int, error) {
+	ct := time.Now()
+	path := q.location.FormatString(ct.In(q.tloc))
+	if q.path != path {
+		if q.fp != nil {
+			q.fp.Close()
+		}
+
+		err := q.initBuffer(path)
+		if err != nil {
+			return q.write(nil, err, false)
+		}
+		q.path = path
+	}
+	return q.write(b, nil, true)
+}
+
+func (q *Qalam) initBuffer(path string) (err error) {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+
+	fp, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+
+	bw := bufio.NewWriter(fp)
+	bw = bufio.NewWriterSize(bw, q.bufSize)
+	q.fp = fp
+	q.bw = bw
+
+	return nil
+
+}
+
 func (q *Qalam) Write(b []byte) (int, error) {
 	ct := time.Now()
 	path := q.location.FormatString(ct.In(q.tloc))
@@ -59,30 +96,28 @@ func (q *Qalam) Write(b []byte) (int, error) {
 			q.fp.Close()
 		}
 
-		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return q.write(nil, err)
-		}
-
-		fp, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		err := q.initBuffer(path)
 		if err != nil {
-			return q.write(nil, err)
+			return q.write(nil, err, false)
 		}
-		q.fp = fp
 		q.path = path
-		q.bw = bufio.NewWriter(q.fp)
-		q.bw = bufio.NewWriterSize(q.bw, q.bufSize)
 	}
-	return q.write(b, nil)
+	return q.write(b, nil, false)
 }
 
-func (q *Qalam) write(b []byte, err error) (int, error) {
+func (q *Qalam) write(b []byte, err error, newline bool) (int, error) {
 	if err == nil {
 		bytesAvailable := q.bw.Available()
 		if bytesAvailable < len(b) {
 			q.bw.Flush()
 		}
+
+		if newline {
+			q.bw.Write(b)
+			return q.bw.Write([]byte("\n"))
+		}
 		return q.bw.Write(b)
+
 	}
 	return 0, err
 }
