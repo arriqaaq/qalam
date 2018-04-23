@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	tmpDir, err = ioutil.TempDir("", "cronowriter")
+	tmpDir, err = ioutil.TempDir("", "qalam")
 )
 
 func Test_Write(t *testing.T) {
