@@ -21,9 +21,6 @@ type (
 		// time location
 		tloc *time.Location
 
-		// channel of messages
-		msgCh  chan string
-		stopCh chan struct{}
 		// Add prom stats
 		// Add zap logger later
 		// bufio size
@@ -34,7 +31,8 @@ type (
 )
 
 var (
-	now = time.Now()
+	now               = time.Now()
+	DefaultBufferSize = 4096
 )
 
 func New(location string) *Qalam {
@@ -46,6 +44,7 @@ func New(location string) *Qalam {
 	return &Qalam{
 		location: p,
 		tloc:     time.Local,
+		bufSize:  DefaultBufferSize,
 	}
 }
 
