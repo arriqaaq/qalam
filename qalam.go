@@ -3,7 +3,6 @@ package qalam
 import (
 	"bufio"
 	"github.com/lestrrat-go/strftime"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
