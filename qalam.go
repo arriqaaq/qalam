@@ -55,10 +55,8 @@ func (q *Qalam) Likho(b []byte) (int, error) {
 func (q *Qalam) Write(b []byte) (int, error) {
 	ct := time.Now()
 	path := q.location.FormatString(ct.In(q.tloc))
-	log.Println("path: ", path)
 	if q.path != path {
 		if q.fp != nil {
-			log.Println("closing", q.path)
 			q.fp.Close()
 		}
 
@@ -82,7 +80,6 @@ func (q *Qalam) Write(b []byte) (int, error) {
 func (q *Qalam) write(b []byte, err error) (int, error) {
 	if err == nil {
 		bytesAvailable := q.bw.Available()
-		log.Println(bytesAvailable, len(b))
 		if bytesAvailable < len(b) {
 			q.bw.Flush()
 		}
