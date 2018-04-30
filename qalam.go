@@ -22,10 +22,6 @@ type (
 		// time location
 		tloc *time.Location
 
-		// Add prom stats
-		// Add zap logger later
-		// Add goroutine safety
-
 		// bufio size
 		bufSize int
 		// bufio writer

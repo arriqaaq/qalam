@@ -16,3 +16,5 @@ Usage:
 TODO:
 
 		Add multiple test cases
+		Add prometheus stats
+		Add zap logger for debug purpose
