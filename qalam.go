@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// How to make something thread safe? Research and implement
+
 type (
 	Qalam struct {
 		fp *os.File
@@ -22,6 +24,8 @@ type (
 
 		// Add prom stats
 		// Add zap logger later
+		// Add goroutine safety
+
 		// bufio size
 		bufSize int
 		// bufio writer
@@ -51,23 +55,6 @@ func (q *Qalam) Likho(b []byte) (int, error) {
 	return q.Write(b)
 }
 
-func (q *Qalam) Writeln(b []byte) (int, error) {
-	ct := time.Now()
-	path := q.location.FormatString(ct.In(q.tloc))
-	if q.path != path {
-		if q.fp != nil {
-			q.fp.Close()
-		}
-
-		err := q.initBuffer(path)
-		if err != nil {
-			return q.write(nil, err, false)
-		}
-		q.path = path
-	}
-	return q.write(b, nil, true)
-}
-
 func (q *Qalam) initBuffer(path string) (err error) {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -81,11 +68,11 @@ func (q *Qalam) initBuffer(path string) (err error) {
 
 	bw := bufio.NewWriter(fp)
 	bw = bufio.NewWriterSize(bw, q.bufSize)
+
+	q.path = path
 	q.fp = fp
 	q.bw = bw
-
 	return nil
-
 }
 
 func (q *Qalam) Write(b []byte) (int, error) {
@@ -98,26 +85,47 @@ func (q *Qalam) Write(b []byte) (int, error) {
 
 		err := q.initBuffer(path)
 		if err != nil {
-			return q.write(nil, err, false)
+			return 0, err
 		}
-		q.path = path
 	}
-	return q.write(b, nil, false)
+	return q.write(b)
 }
 
-func (q *Qalam) write(b []byte, err error, newline bool) (int, error) {
-	if err == nil {
-		bytesAvailable := q.bw.Available()
-		if bytesAvailable < len(b) {
-			q.bw.Flush()
-		}
+func (q *Qalam) bytesAvailable() int {
+	return q.bw.Available()
+}
 
-		if newline {
-			q.bw.Write(b)
-			return q.bw.Write([]byte("\n"))
+func (q *Qalam) Writeln(b []byte) (int, error) {
+	ct := time.Now()
+	path := q.location.FormatString(ct.In(q.tloc))
+	if q.path != path {
+		if q.fp != nil {
+			q.fp.Close()
 		}
-		return q.bw.Write(b)
-
+		err := q.initBuffer(path)
+		if err != nil {
+			return 0, err
+		}
 	}
-	return 0, err
+	return q.writeln(b)
+}
+
+// This function is not declared with a pointer value because otherwise
+// race conditions will occur when using multiple goroutines
+func (q Qalam) write(b []byte) (int, error) {
+	if q.bytesAvailable() < len(b) {
+		q.bw.Flush()
+	}
+	return q.bw.Write(b)
+}
+
+// This function is not declared with a pointer value because otherwise
+// race conditions will occur when using multiple goroutines
+func (q Qalam) writeln(b []byte) (int, error) {
+	if q.bytesAvailable() < len(b) {
+		q.bw.Flush()
+	}
+	// Newline must always be appended
+	q.bw.Write(b)
+	return q.bw.Write([]byte("\n"))
 }

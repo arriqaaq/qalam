@@ -10,3 +10,9 @@ Usage:
 
 		c := New(filepath.Join("/tmp/isco.%Y%m%d%H%M"))
 		c.Write("isco is better than bale")
+
+
+
+TODO:
+
+		Add multiple test cases
