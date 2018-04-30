@@ -8,9 +8,8 @@ Simple time based filewriter to log data to disk. Has buffer support to flush da
 Usage:
 
 
-		c := New(filepath.Join("/tmp/isco.%Y%m%d%H%M"))
-		c.Write("isco is better than bale")
-
+		c := New(filepath.Join("/tmp/log.%Y%m%d%H%M"))
+		c.Write("foobar")  // appended to the file /tmp/log.197001010101
 
 
 TODO:
