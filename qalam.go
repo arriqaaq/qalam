@@ -30,7 +30,6 @@ type (
 )
 
 var (
-	now               = time.Now()
 	DefaultBufferSize = 4096
 )
 
@@ -49,6 +48,16 @@ func New(location string) *Qalam {
 
 func (q *Qalam) Likho(b []byte) (int, error) {
 	return q.Write(b)
+}
+
+/*
+	SetBufferSize set's the size of the buffer
+	which is kept in memory before pushing to disk.
+	Defaults to 4096, the default page size on older
+	SSDs, can be set accordingly
+*/
+func (q *Qalam) SetBufferSize(b int) {
+	q.bufSize = b
 }
 
 func (q *Qalam) initBuffer(path string) (err error) {
