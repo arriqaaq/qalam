@@ -115,8 +115,7 @@ func (q *Qalam) Writeln(b []byte) (int, error) {
 	return q.writeln(b)
 }
 
-// This function is not declared with a pointer value because otherwise
-// race conditions will occur when using multiple goroutines
+// Avoid data race when writing
 func (q Qalam) write(b []byte) (int, error) {
 	if q.bytesAvailable() < len(b) {
 		q.bw.Flush()
@@ -124,8 +123,7 @@ func (q Qalam) write(b []byte) (int, error) {
 	return q.bw.Write(b)
 }
 
-// This function is not declared with a pointer value because otherwise
-// race conditions will occur when using multiple goroutines
+// Avoid data race when writing
 func (q Qalam) writeln(b []byte) (int, error) {
 	if q.bytesAvailable() < len(b) {
 		q.bw.Flush()
