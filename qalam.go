@@ -5,6 +5,7 @@ import (
 	"github.com/lestrrat-go/strftime"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -24,8 +25,11 @@ type (
 
 		// bufio size
 		bufSize int
+
 		// bufio writer
 		bw *bufio.Writer
+
+		mu sync.Mutex
 	}
 )
 
@@ -126,7 +130,21 @@ func (q *Qalam) writeln(b []byte) (int, error) {
 	if q.bytesAvailable() < len(b) {
 		q.bw.Flush()
 	}
+
 	// Newline must always be appended
 	q.bw.Write(b)
 	return q.bw.Write([]byte("\n"))
+}
+
+/*
+A successful close does not guarantee that the data has been successfully saved to disk,
+as the kernel defers writes. It is not common for a file system to flush the buffers
+when the stream is closed. If you need to be sure that the data is physically
+stored use fsync(2). (It will depend on the disk hardware at this point.)
+*/
+func (q *Qalam) Close() {
+	q.bw.Flush()
+	q.fp.Sync()
+	q.fp.Close()
+
 }
