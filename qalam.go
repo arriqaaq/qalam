@@ -119,14 +119,16 @@ func (q *Qalam) Writeln(b []byte) (int, error) {
 	return q.writeln(b)
 }
 
-func (q *Qalam) write(b []byte) (int, error) {
+// Avoid data race when writing
+func (q Qalam) write(b []byte) (int, error) {
 	if q.bytesAvailable() < len(b) {
 		q.bw.Flush()
 	}
 	return q.bw.Write(b)
 }
 
-func (q *Qalam) writeln(b []byte) (int, error) {
+// Avoid data race when writing
+func (q Qalam) writeln(b []byte) (int, error) {
 	if q.bytesAvailable() < len(b) {
 		q.bw.Flush()
 	}
