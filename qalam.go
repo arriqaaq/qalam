@@ -75,8 +75,7 @@ func (q *Qalam) initBuffer(path string) (err error) {
 		return err
 	}
 
-	bw := bufio.NewWriter(fp)
-	bw = bufio.NewWriterSize(bw, q.bufSize)
+	bw := bufio.NewWriterSize(fp, q.bufSize)
 
 	q.path = path
 	q.fp = fp
@@ -148,5 +147,8 @@ func (q *Qalam) Close() {
 	q.bw.Flush()
 	q.fp.Sync()
 	q.fp.Close()
+}
 
+func (q *Qalam) Likholn(b []byte) (int, error) {
+	return q.Writeln(b)
 }
