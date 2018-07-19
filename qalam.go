@@ -2,6 +2,7 @@ package qalam
 
 import (
 	"bufio"
+	"errors"
 	"github.com/lestrrat-go/strftime"
 	"os"
 	"path/filepath"
@@ -29,13 +30,56 @@ type (
 		// bufio writer
 		bw *bufio.Writer
 
-		mu sync.Mutex
+		wg sync.WaitGroup
+
+		doneCh chan bool
+	}
+
+	Config struct {
+		Location            string
+		TimeLocation        *time.Location
+		BufferSize          int
+		EnablePeriodicFlush bool
+		FlushInterval       time.Duration
 	}
 )
 
 var (
 	DefaultBufferSize = 4096
 )
+
+func NewConfig(loc string, timeLoc *time.Location, bufSize int, enableTimer bool, interval time.Duration) *Config {
+	n := &Config{
+		Location:            loc,
+		TimeLocation:        timeLoc,
+		BufferSize:          bufSize,
+		EnablePeriodicFlush: enableTimer,
+		FlushInterval:       interval,
+	}
+	if n.TimeLocation == nil {
+		n.TimeLocation = time.Local
+	}
+	return n
+}
+
+func (c *Config) Check() error {
+	_, err := strftime.New(c.Location)
+	if err != nil {
+		return err
+	}
+	if c.TimeLocation == nil {
+		c.TimeLocation = time.Local
+	}
+	if c.BufferSize <= 0 {
+		return errors.New("buffer size must be greater than 0")
+	}
+	if c.EnablePeriodicFlush {
+		if c.FlushInterval <= 0 {
+			return errors.New("flush interval must be greater than 0")
+		}
+	}
+	return nil
+}
 
 func New(location string) *Qalam {
 	p, err := strftime.New(location)
@@ -48,6 +92,44 @@ func New(location string) *Qalam {
 		tloc:     time.Local,
 		bufSize:  DefaultBufferSize,
 	}
+}
+
+func NewQalam(config *Config) (*Qalam, error) {
+
+	n := new(Qalam)
+	err := config.Check()
+	if err != nil {
+		return n, err
+	}
+	n.doneCh = make(chan bool)
+
+	p, _ := strftime.New(config.Location)
+	n.location = p
+
+	n.tloc = config.TimeLocation
+	n.bufSize = config.BufferSize
+
+	if config.EnablePeriodicFlush {
+		n.wg.Add(1)
+		go func() {
+			t := time.NewTicker(config.FlushInterval)
+			for range t.C {
+
+				select {
+				case <-n.doneCh:
+					n.wg.Done()
+					return
+				default:
+					if n.bytesAvailable() > 0 {
+						n.bw.Flush()
+					}
+				}
+
+			}
+		}()
+	}
+
+	return n, nil
 }
 
 func (q *Qalam) Likho(b []byte) (int, error) {
@@ -144,6 +226,8 @@ when the stream is closed. If you need to be sure that the data is physically
 stored use fsync(2). (It will depend on the disk hardware at this point.)
 */
 func (q *Qalam) Close() {
+	q.doneCh <- true
+	q.wg.Wait()
 	q.bw.Flush()
 	q.fp.Sync()
 	q.fp.Close()
