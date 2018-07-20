@@ -120,7 +120,7 @@ func NewQalam(config *Config) (*Qalam, error) {
 					n.wg.Done()
 					return
 				default:
-					if n.bytesAvailable() > 0 {
+					if n.bw != nil && n.bytesAvailable() > 0 {
 						n.bw.Flush()
 					}
 				}
