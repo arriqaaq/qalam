@@ -32,6 +32,8 @@ type (
 
 		wg sync.WaitGroup
 
+		mu sync.RWMutex
+
 		doneCh chan bool
 	}
 
@@ -62,7 +64,7 @@ func NewConfig(loc string, timeLoc *time.Location, bufSize int, enableTimer bool
 	return n
 }
 
-func (c *Config) Check() error {
+func (c *Config) Validate() error {
 	_, err := strftime.New(c.Location)
 	if err != nil {
 		return err
@@ -97,7 +99,7 @@ func New(location string) *Qalam {
 func NewQalam(config *Config) (*Qalam, error) {
 
 	n := new(Qalam)
-	err := config.Check()
+	err := config.Validate()
 	if err != nil {
 		return n, err
 	}
@@ -166,6 +168,9 @@ func (q *Qalam) initBuffer(path string) (err error) {
 }
 
 func (q *Qalam) Write(b []byte) (int, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	ct := time.Now()
 	path := q.location.FormatString(ct.In(q.tloc))
 	if q.path != path {
@@ -186,6 +191,9 @@ func (q *Qalam) bytesAvailable() int {
 }
 
 func (q *Qalam) Writeln(b []byte) (int, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	ct := time.Now()
 	path := q.location.FormatString(ct.In(q.tloc))
 	if q.path != path {
