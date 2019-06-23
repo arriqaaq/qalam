@@ -148,6 +148,15 @@ func (q *Qalam) SetBufferSize(b int) {
 	q.bufSize = b
 }
 
+func (q *Qalam) SetAutoFlushByDuration(dur time.Duration) {
+	go func(){
+		t := time.NewTicker(dur)
+		for _ = range t.C {
+			q.bw.Flush()
+		}
+	}()
+}
+
 func (q *Qalam) initBuffer(path string) (err error) {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
